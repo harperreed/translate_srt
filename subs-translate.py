@@ -2,6 +2,7 @@ import srt
 import argparse
 import sys
 import time
+import signal
 from typing import List, Optional, Sequence, Dict, Tuple
 from openai import OpenAI
 import tiktoken
@@ -241,6 +242,34 @@ class TranslationDisplay:
             Panel(status, border_style="yellow")
         )
 
+def display_final_summary(
+    total_subs: int,
+    completed_subs: int,
+    total_prompt_tokens: int,
+    total_completion_tokens: int,
+    model: str,
+    interrupted: bool = False
+) -> None:
+    """Display a summary of the translation run."""
+    total_tokens = total_prompt_tokens + total_completion_tokens
+    
+    console.print("\n[bold yellow]Translation Summary:[/bold yellow]")
+    console.print(f"Status: {'[red]Interrupted[/red]' if interrupted else '[green]Completed[/green]'}")
+    console.print(f"Progress: [blue]{completed_subs}/{total_subs}[/blue] subtitles processed")
+    console.print(f"Total prompt tokens: [yellow]{total_prompt_tokens:,}[/yellow]")
+    console.print(f"Total completion tokens: [yellow]{total_completion_tokens:,}[/yellow]")
+    console.print(f"Total tokens: [bold yellow]{total_tokens:,}[/bold yellow]")
+    
+    if model in MODEL_PRICING:
+        input_rate, output_rate = MODEL_PRICING[model]
+        input_cost = (total_prompt_tokens / 1000) * input_rate
+        output_cost = (total_completion_tokens / 1000) * output_rate
+        total_cost = input_cost + output_cost
+        
+        console.print(f"Input cost: [green]${input_cost:.4f}[/green]")
+        console.print(f"Output cost: [green]${output_cost:.4f}[/green]")
+        console.print(f"Total cost: [bold green]${total_cost:.4f}[/bold green]")
+
 def translate_srt(
     input_file: str,
     output_file: str,
@@ -324,8 +353,23 @@ def translate_srt(
     total_cost = 0.0
     display = TranslationDisplay(model)
     
-    with Live(display.layout, refresh_per_second=4, screen=True):
-        for sub in subtitles:
+    # Setup signal handler
+    def signal_handler(sig, frame):
+        display_final_summary(
+            total_subs,
+            len(translated_subtitles),
+            total_prompt_tokens,
+            total_completion_tokens,
+            model,
+            interrupted=True
+        )
+        sys.exit(1)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    try:
+        with Live(display.layout, refresh_per_second=4, screen=True):
+            for sub in subtitles:
             # Count tokens for this subtitle
             system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
             prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
@@ -364,6 +408,15 @@ def translate_srt(
     
     with console.status("[bold green]Writing output file..."):
         write_srt(output_file, translated_subtitles)
+        
+    # Show final summary
+    display_final_summary(
+        total_subs,
+        len(translated_subtitles),
+        total_prompt_tokens,
+        total_completion_tokens,
+        model
+    )
 
 if __name__ == '__main__':
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
