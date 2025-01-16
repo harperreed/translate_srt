@@ -68,7 +68,7 @@ Text content
     with pytest.raises(SystemExit):
         read_srt(temp_srt_file)
 
-async def test_calculate_cost_valid_model():
+def test_calculate_cost_valid_model():
     """Test cost calculation with valid model and token counts"""
     display = TranslationDisplay("gpt-4")
     cost = display.calculate_cost(1000, 1000)
