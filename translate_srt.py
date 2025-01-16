@@ -109,9 +109,12 @@ def validate_srt_format(content: str) -> None:
 
         # Validate entry has proper blank line separation
         if i < len(entries):
-            if not content.split("\n\n")[i-1].endswith("\n\n"):
-                console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
-                sys.exit(1)
+            entry_parts = content.split("\n\n")
+            if i-1 < len(entry_parts):
+                current_entry = entry_parts[i-1]
+                if not (current_entry.endswith("\n") or current_entry.endswith("\n\n")):
+                    console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
+                    sys.exit(1)
 
         # Validate index number
         try:
@@ -124,17 +127,21 @@ def validate_srt_format(content: str) -> None:
             sys.exit(1)
 
         # Validate timestamp format
-        timestamp = lines[1]
-        if " --> " not in timestamp:
-            console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing separator ' --> '")
-            sys.exit(1)
-
-        start, end = timestamp.split(" --> ")
         try:
-            srt.srt_timestamp_to_timedelta(start)
-            srt.srt_timestamp_to_timedelta(end)
-        except ValueError:
-            console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format")
+            timestamp = lines[1]
+            if " --> " not in timestamp:
+                console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing separator ' --> '")
+                sys.exit(1)
+
+            start, end = timestamp.split(" --> ")
+            try:
+                srt.srt_timestamp_to_timedelta(start)
+                srt.srt_timestamp_to_timedelta(end)
+            except ValueError:
+                console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format")
+                sys.exit(1)
+        except IndexError:
+            console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing timestamp line")
             sys.exit(1)
 
         # Validate subtitle text
