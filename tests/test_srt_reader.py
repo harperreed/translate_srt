@@ -15,7 +15,6 @@ Hello world!
 00:00:04,001 --> 00:00:08,000
 This is a test subtitle.
 Multiple lines.
-
 """
 
 
