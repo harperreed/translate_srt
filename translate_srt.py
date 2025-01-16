@@ -180,7 +180,7 @@ class TranslationDisplay:
             Layout(name="header", size=3),
             Layout(name="main"),
             Layout(name="stats", size=4),
-            Layout(name="footer", size=3)
+            Layout(name="progress", size=3)
         )
         self.layout["main"].split_row(
             Layout(name="source", ratio=1),
@@ -241,9 +241,17 @@ class TranslationDisplay:
                 )
             )
     
-    def update_footer(self, status: str):
-        self.layout["footer"].update(
-            Panel(status, border_style="yellow")
+    def update_progress(self, current: int, total: int):
+        progress_width = 50  # Width of the progress bar in characters
+        filled = int(progress_width * current / total)
+        bar = '█' * filled + '░' * (progress_width - filled)
+        percentage = current / total * 100
+        
+        self.layout["progress"].update(
+            Panel(
+                f"{bar} {percentage:>5.1f}% ({current}/{total})",
+                border_style="yellow"
+            )
         )
 
 def display_final_summary(
@@ -385,7 +393,7 @@ def translate_srt(
                 # Update display with current subtitle
                 display.update_header(sub.index, total_subs, total_tokens, total_cost)
                 display.update_source(sub.content)
-                display.update_footer(f"Processing subtitle {sub.index}...")
+                display.update_progress(sub.index, total_subs)
             
                 # Perform translation
                 translated_content = translate_text(sub.content, source_lang, target_lang, model)
@@ -403,7 +411,7 @@ def translate_srt(
                 display.update_header(sub.index, total_subs, total_tokens, total_cost)
                 display.update_target(translated_content)
                 display.update_stats(prompt_tokens, completion_tokens, total_prompt_tokens, total_completion_tokens)
-                display.update_footer(f"Progress: {sub.index}/{total_subs}")
+                display.update_progress(sub.index, total_subs)
                 
                 translated_sub = srt.Subtitle(
                     index=sub.index,
