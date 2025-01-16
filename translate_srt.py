@@ -489,7 +489,6 @@ def translate_srt(
                 model
             ][1]
             total_cost = input_cost + output_cost
-            cost_estimate = f"${total_cost:.2f}"
 
         console.print("\n[bold green]Dry Run Summary:[/bold green]")
         console.print(f"Model: [blue]{model}[/blue]")
