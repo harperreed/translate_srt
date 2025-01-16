@@ -210,20 +210,31 @@ class TranslationDisplay:
         )
     
     def update_stats(self, prompt_tokens: int, completion_tokens: int, total_prompt_tokens: int, total_completion_tokens: int):
-        model_input_rate = f"${MODEL_PRICING[self.model][0]:.3f}" if self.model in MODEL_PRICING else "N/A"
-        model_output_rate = f"${MODEL_PRICING[self.model][1]:.3f}" if self.model in MODEL_PRICING else "N/A"
-        
-        total_cost = self.calculate_cost(total_prompt_tokens, total_completion_tokens)
-        
-        self.layout["stats"].update(
-            Panel(
-                f"Total tokens used:\n"
-                f"Input tokens: [blue]{total_prompt_tokens:,}[/blue] @ {model_input_rate}/1K\n"
-                f"Output tokens: [blue]{total_completion_tokens:,}[/blue] @ {model_output_rate}/1K\n"
-                f"Total cost so far: [green]${total_cost:.4f}[/green]",
-                border_style="cyan"
+        if self.model in MODEL_PRICING:
+            input_rate, output_rate = MODEL_PRICING[self.model]
+            avg_rate = (input_rate + output_rate) / 2  # Simple average for display
+            total_tokens = total_prompt_tokens + total_completion_tokens
+            total_cost = self.calculate_cost(total_prompt_tokens, total_completion_tokens)
+            
+            self.layout["stats"].update(
+                Panel(
+                    f"Prompt Tokens: [blue]{total_prompt_tokens:,}[/blue], "
+                    f"Completion Tokens: [blue]{total_completion_tokens:,}[/blue] | "
+                    f"Total Tokens: [yellow]{total_tokens:,}[/yellow] "
+                    f"([green]${total_cost:.2f}[/green] @ 1k/${avg_rate:.3f})",
+                    border_style="cyan"
+                )
             )
-        )
+        else:
+            total_tokens = total_prompt_tokens + total_completion_tokens
+            self.layout["stats"].update(
+                Panel(
+                    f"Prompt Tokens: [blue]{total_prompt_tokens:,}[/blue], "
+                    f"Completion Tokens: [blue]{total_completion_tokens:,}[/blue] | "
+                    f"Total Tokens: [yellow]{total_tokens:,}[/yellow]",
+                    border_style="cyan"
+                )
+            )
     
     def update_footer(self, status: str):
         self.layout["footer"].update(
