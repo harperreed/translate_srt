@@ -7,6 +7,12 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 from rich import print as rprint
 
+# Supported languages
+SUPPORTED_LANGUAGES = [
+    "English", "Spanish", "French", "German", "Italian", "Portuguese", 
+    "Russian", "Japanese", "Chinese", "Korean", "Arabic"
+]
+
 console = Console()
 
 load_dotenv()
@@ -41,7 +47,17 @@ def translate_text(text, source_lang, target_lang, model):
 
     return response.choices[0].message.content.strip()
 
+def validate_language(lang):
+    if lang not in SUPPORTED_LANGUAGES:
+        raise ValueError(f"Unsupported language: {lang}\nSupported languages: {', '.join(SUPPORTED_LANGUAGES)}")
+
 def translate_srt(input_file, output_file, source_lang, target_lang, model):
+    validate_language(source_lang)
+    validate_language(target_lang)
+    
+    if source_lang == target_lang:
+        raise ValueError("Source and target languages must be different")
+        
     with console.status("[bold green]Reading subtitles...") as status:
         subtitles = read_srt(input_file)
         total_subs = len(subtitles)
@@ -81,8 +97,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Translate SRT subtitles between languages')
     parser.add_argument('input_file', help='Input SRT file path')
     parser.add_argument('output_file', help='Output SRT file path')
-    parser.add_argument('--from', dest='source_lang', default='Japanese', help='Source language (default: Japanese)')
-    parser.add_argument('--to', dest='target_lang', default='English', help='Target language (default: English)')
+    parser.add_argument('--from', dest='source_lang', default='Japanese',
+                      help=f'Source language (default: Japanese). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
+    parser.add_argument('--to', dest='target_lang', default='English',
+                      help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--model', default='gpt-4o', help='OpenAI model to use (default: gpt-4o)')
     
     args = parser.parse_args()
