@@ -3,6 +3,9 @@ import argparse
 import sys
 import time
 import signal
+import random
+import asyncio
+from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, Dict, Tuple
 from openai import OpenAI
 import tiktoken
@@ -29,6 +32,15 @@ load_dotenv()
 client = OpenAI()
 
 # Model pricing per 1K tokens (input, output)
+# Rate limiting settings
+MAX_RETRIES = 5
+MIN_RETRY_DELAY = 1  # seconds
+MAX_RETRY_DELAY = 60  # seconds
+BATCH_SIZE = 10  # number of requests before forced delay
+BATCH_DELAY = 2  # seconds between batches
+REQUEST_WINDOW = 60  # rolling window in seconds
+MAX_REQUESTS_PER_WINDOW = 50  # max requests per window
+
 MODEL_PRICING: Dict[str, Tuple[float, float]] = {
     "gpt-4-1106-preview": (0.01, 0.03),  # $10.00 / 1M input tokens, $30.00 / 1M output tokens
     "gpt-4": (0.03, 0.06),               # $30.00 / 1M input tokens, $60.00 / 1M output tokens
@@ -117,20 +129,54 @@ def write_srt(file_path: str, subtitles: Sequence[srt.Subtitle]) -> None:
     except Exception as e:
         raise RuntimeError(f"Unexpected error while writing output file: {str(e)}")
 
-def translate_text(
+class RateLimiter:
+    def __init__(self, window_size: int = REQUEST_WINDOW, max_requests: int = MAX_REQUESTS_PER_WINDOW):
+        self.window_size = window_size
+        self.max_requests = max_requests
+        self.requests = []
+        self.batch_count = 0
+    
+    def can_make_request(self) -> bool:
+        now = datetime.now()
+        # Remove requests outside the window
+        self.requests = [t for t in self.requests if now - t < timedelta(seconds=self.window_size)]
+        return len(self.requests) < self.max_requests
+    
+    def add_request(self):
+        self.requests.append(datetime.now())
+        self.batch_count += 1
+        
+    def should_batch_delay(self) -> bool:
+        if self.batch_count >= BATCH_SIZE:
+            self.batch_count = 0
+            return True
+        return False
+
+def calculate_retry_delay(attempt: int) -> float:
+    """Calculate exponential backoff with jitter."""
+    exp_delay = min(MAX_RETRY_DELAY, MIN_RETRY_DELAY * (2 ** attempt))
+    jitter = random.uniform(0, 0.1 * exp_delay)  # 10% jitter
+    return exp_delay + jitter
+
+# Global rate limiter instance
+rate_limiter = RateLimiter()
+
+async def translate_text(
     text: str,
     source_lang: str,
     target_lang: str,
-    model: str,
-    max_retries: int = 3,
-    retry_delay: int = 5
+    model: str
 ) -> str:
     # Check input text length (rough estimate: 4 chars per token)
     if len(text) > 4000:  # ~1000 tokens
         raise ValueError("Text too long for translation. Please break into smaller chunks.")
     
-    for attempt in range(max_retries):
+    for attempt in range(MAX_RETRIES):
         try:
+            # Check rate limits
+            while not rate_limiter.can_make_request():
+                await asyncio.sleep(1)
+            
             response = client.chat.completions.create(
                 model=model,
                 messages=[
@@ -138,17 +184,26 @@ def translate_text(
                     {"role": "user", "content": text}
                 ]
             )
+            
+            rate_limiter.add_request()
+            
+            # Add batch delay if needed
+            if rate_limiter.should_batch_delay():
+                await asyncio.sleep(BATCH_DELAY)
+                
             return response.choices[0].message.content.strip()
             
         except RateLimitError:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+            if attempt < MAX_RETRIES - 1:
+                delay = calculate_retry_delay(attempt)
+                await asyncio.sleep(delay)
                 continue
             raise RuntimeError("OpenAI API rate limit exceeded. Please try again later.")
             
         except APIConnectionError:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
+            if attempt < MAX_RETRIES - 1:
+                delay = calculate_retry_delay(attempt)
+                await asyncio.sleep(delay)
                 continue
             raise RuntimeError("Failed to connect to OpenAI API. Please check your internet connection.")
             
