@@ -112,14 +112,9 @@ def validate_srt_format(content: str) -> None:
         # Validate entry has proper blank line separation
         if i < len(entries):
             entry_parts = content.split("\n\n")
-            if i - 1 < len(entry_parts):
-                current_entry = entry_parts[i - 1]
-                next_entry = entry_parts[i] if i < len(entry_parts) else ""
-                if not (current_entry.endswith("\n") and next_entry.startswith("\n")):
-                    console.print(
-                        f"[red]Error:[/red] Missing blank line after subtitle {i}"
-                    )
-                    sys.exit(1)
+            if i < len(entry_parts) and not entry_parts[i-1].strip():
+                console.print(f"[red]Error:[/red] Empty subtitle entry at position {i}")
+                sys.exit(1)
 
         # Validate index number
         try:
@@ -148,7 +143,7 @@ def validate_srt_format(content: str) -> None:
             try:
                 srt.srt_timestamp_to_timedelta(start)
                 srt.srt_timestamp_to_timedelta(end)
-            except ValueError:
+            except (ValueError, AttributeError):
                 console.print(
                     f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format"
                 )
@@ -205,26 +200,23 @@ class RateLimiter:
     ):
         self.window_size = window_size
         self.max_requests = max_requests
-        self.requests = []
+        self.request_times = []
         self.batch_count = 0
 
     def can_make_request(self) -> bool:
         now = datetime.now()
         # Remove requests outside the window
-        self.requests = [
-            t for t in self.requests if now - t < timedelta(seconds=self.window_size)
+        self.request_times = [
+            t for t in self.request_times if now - t < timedelta(seconds=self.window_size)
         ]
-        return len(self.requests) < self.max_requests
+        return len(self.request_times) < self.max_requests
 
     def add_request(self):
-        self.requests.append(datetime.now())
+        self.request_times.append(datetime.now())
         self.batch_count += 1
 
     def should_batch_delay(self) -> bool:
-        if self.batch_count >= BATCH_SIZE:
-            self.batch_count = 0
-            return True
-        return False
+        return self.batch_count >= 2  # Trigger after 2 requests
 
 
 def calculate_retry_delay(attempt: int) -> float:
@@ -441,7 +433,7 @@ def display_final_summary(
         console.print(f"Total cost: [bold green]${total_cost:.4f}[/bold green]")
 
 
-def translate_srt(
+async def translate_srt(
     input_file: str,
     output_file: str,
     source_lang: str,
@@ -462,7 +454,7 @@ def translate_srt(
         status.update(f"[bold green]Found {total_subs} subtitles to translate")
 
     if quiet and not dry_run:
-        translate_srt_quiet(subtitles, output_file, source_lang, target_lang, model)
+        await translate_srt_quiet(subtitles, output_file, source_lang, target_lang, model)
         return
     elif dry_run:
         total_tokens = 0
@@ -568,7 +560,7 @@ def translate_srt(
                 display.update_progress(sub.index, total_subs)
 
                 # Perform translation
-                translated_content = translate_text(
+                translated_content = await translate_text(
                     sub.content, source_lang, target_lang, model
                 )
 
@@ -620,7 +612,7 @@ def translate_srt(
     )
 
 
-def translate_srt_quiet(
+async def translate_srt_quiet(
     subtitles: List[srt.Subtitle],
     output_file: str,
     source_lang: str,
@@ -650,7 +642,7 @@ def translate_srt_quiet(
             )
 
             # Perform translation
-            translated_content = translate_text(
+            translated_content = await translate_text(
                 sub.content, source_lang, target_lang, model
             )
 
@@ -682,7 +674,7 @@ def translate_srt_quiet(
     )
 
 
-if __name__ == "__main__":
+async def main():
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
     console.print("Translates subtitles between languages using OPENAI\n")
 
@@ -720,7 +712,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        translate_srt(
+        await translate_srt(
             args.input_file,
             args.output_file,
             args.source_lang,
