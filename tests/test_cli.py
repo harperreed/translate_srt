@@ -1,5 +1,6 @@
 import pytest
 import sys
+import asyncio
 from translate_srt import translate_srt, SUPPORTED_LANGUAGES
 from unittest.mock import patch
 
@@ -20,7 +21,7 @@ def test_cli_valid_arguments(monkeypatch, tmp_path):
     
     with patch('translate_srt.translate_srt') as mock_translate:
         monkeypatch.setattr(sys, 'argv', test_args)
-        import translate_srt
+        import translate_srt.__main__
         assert mock_translate.called
         call_args = mock_translate.call_args[0]
         assert str(input_file) == call_args[0]
@@ -49,26 +50,26 @@ def test_cli_invalid_file_paths(tmp_path):
     output_file = tmp_path / "output.srt"
     
     with pytest.raises(SystemExit) as exc_info:
-        translate_srt(
+        asyncio.run(translate_srt(
             str(nonexistent_file),
             str(output_file),
             "English",
             "Spanish",
             "gpt-4-1106-preview"
-        )
+        ))
     
     assert exc_info.value.code == 1
 
 def test_cli_invalid_language_codes():
     """Test CLI with invalid language codes"""
     with pytest.raises(ValueError) as exc_info:
-        translate_srt(
+        asyncio.run(translate_srt(
             "input.srt",
             "output.srt",
             "InvalidLanguage",
             "Spanish",
             "gpt-4-1106-preview"
-        )
+        ))
     
     assert "Unsupported language" in str(exc_info.value)
     assert all(lang in str(exc_info.value) for lang in SUPPORTED_LANGUAGES)
