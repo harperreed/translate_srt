@@ -379,37 +379,41 @@ def translate_srt(
                 display.update_source(sub.content)
                 display.update_footer(f"Processing subtitle {sub.index}...")
             
-            # Perform translation
-            translated_content = translate_text(sub.content, source_lang, target_lang, model)
+                # Perform translation
+                translated_content = translate_text(sub.content, source_lang, target_lang, model)
+                
+                # Update token counts and display
+                completion_tokens = count_tokens(translated_content, model)
+                total_prompt_tokens += prompt_tokens
+                total_completion_tokens += completion_tokens
+                total_tokens = total_prompt_tokens + total_completion_tokens
+                
+                # Calculate total cost
+                total_cost = display.calculate_cost(total_prompt_tokens, total_completion_tokens)
+                
+                # Update all display components
+                display.update_header(sub.index, total_subs, total_tokens, total_cost)
+                display.update_target(translated_content)
+                display.update_stats(prompt_tokens, completion_tokens, total_prompt_tokens, total_completion_tokens)
+                display.update_footer(f"Progress: {sub.index}/{total_subs}")
+                
+                translated_sub = srt.Subtitle(
+                    index=sub.index,
+                    start=sub.start,
+                    end=sub.end,
+                    content=translated_content
+                )
+                
+                translated_subtitles.append(translated_sub)
+                
+        # Write output file and show summary after successful translation
+        with console.status("[bold green]Writing output file..."):
+            write_srt(output_file, translated_subtitles)
             
-            # Update token counts and display
-            completion_tokens = count_tokens(translated_content, model)
-            total_prompt_tokens += prompt_tokens
-            total_completion_tokens += completion_tokens
-            total_tokens = total_prompt_tokens + total_completion_tokens
-            
-            # Calculate total cost
-            total_cost = display.calculate_cost(total_prompt_tokens, total_completion_tokens)
-            
-            # Update all display components
-            display.update_header(sub.index, total_subs, total_tokens, total_cost)
-            display.update_target(translated_content)
-            display.update_stats(prompt_tokens, completion_tokens, total_prompt_tokens, total_completion_tokens)
-            display.update_footer(f"Progress: {sub.index}/{total_subs}")
-            
-            translated_sub = srt.Subtitle(
-                index=sub.index,
-                start=sub.start,
-                end=sub.end,
-                content=translated_content
-            )
-            
-            translated_subtitles.append(translated_sub)
-    
-    with console.status("[bold green]Writing output file..."):
-        write_srt(output_file, translated_subtitles)
-        
-    # Show final summary
+        # Show final summary
+    except Exception as e:
+        console.print(f"\n[bold red]Error during translation:[/bold red] {str(e)}")
+        raise
     display_final_summary(
         total_subs,
         len(translated_subtitles),
