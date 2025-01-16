@@ -4,6 +4,7 @@ import sys
 import time
 from typing import List, Optional, Sequence
 from openai import OpenAI
+import tiktoken
 from openai import APIError, RateLimitError, APIConnectionError
 from dotenv import load_dotenv
 from rich.console import Console
@@ -144,12 +145,23 @@ def validate_language(lang: str) -> None:
     if lang not in SUPPORTED_LANGUAGES:
         raise ValueError(f"Unsupported language: {lang}\nSupported languages: {', '.join(SUPPORTED_LANGUAGES)}")
 
+def count_tokens(text: str, model: str) -> int:
+    """Count the number of tokens in the text for the specified model."""
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except KeyError:
+        # Fallback to cl100k_base for unknown models
+        encoding = tiktoken.get_encoding("cl100k_base")
+        return len(encoding.encode(text))
+
 def translate_srt(
     input_file: str,
     output_file: str,
     source_lang: str,
     target_lang: str,
-    model: str
+    model: str,
+    dry_run: bool = False
 ) -> None:
     validate_language(source_lang)
     validate_language(target_lang)
@@ -161,7 +173,40 @@ def translate_srt(
         subtitles = read_srt(input_file)
         total_subs = len(subtitles)
         status.update(f"[bold green]Found {total_subs} subtitles to translate")
-    
+
+    if dry_run:
+        total_tokens = 0
+        prompt_tokens = 0
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        ) as progress:
+            task = progress.add_task("[cyan]Analyzing subtitles...", total=total_subs)
+            
+            for sub in subtitles:
+                # Count tokens in the system message
+                system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
+                prompt_tokens += count_tokens(system_msg, model)
+                
+                # Count tokens in the subtitle content
+                content_tokens = count_tokens(sub.content, model)
+                prompt_tokens += content_tokens
+                
+                # Estimate response tokens (assuming translation is ~1.5x the input)
+                response_tokens = int(content_tokens * 1.5)
+                total_tokens += prompt_tokens + response_tokens
+                
+                progress.advance(task)
+        
+        console.print("\n[bold green]Dry Run Summary:[/bold green]")
+        console.print(f"Number of subtitles: {total_subs}")
+        console.print(f"Estimated prompt tokens: {prompt_tokens:,}")
+        console.print(f"Estimated total tokens: {total_tokens:,}")
+        return
+
     translated_subtitles = []
     
     with Progress(
@@ -201,11 +246,12 @@ if __name__ == '__main__':
     parser.add_argument('--to', dest='target_lang', default='English',
                       help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--model', default='gpt-4o-mini', help='OpenAI model to use (default: gpt-4o-mini)')
+    parser.add_argument('--dry-run', action='store_true', help='Analyze token usage without performing translation')
     
     args = parser.parse_args()
     
     try:
-        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang, args.model)
+        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang, args.model, args.dry_run)
         console.print(f"\n[bold green]✓[/bold green] Translation completed successfully!")
         console.print(f"[dim]Output saved to:[/dim] {args.output_file}")
     except Exception as e:
