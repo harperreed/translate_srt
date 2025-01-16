@@ -197,7 +197,7 @@ class TranslationDisplay:
     def update_header(self, current: int, total: int, total_tokens: int, total_cost: float):
         self.layout["header"].update(
             Panel(
-                f"[bold blue]Translating subtitle {current}/{total}[/bold blue]\n"
+                f"[bold blue]Translating subtitle {current}/{total} using {self.model}[/bold blue]\n"
                 f"Total tokens: [yellow]{total_tokens:,}[/yellow] | "
                 f"Total cost: [green]${total_cost:.4f}[/green]",
                 title="SRT Translator"
