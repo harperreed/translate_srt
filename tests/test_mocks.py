@@ -6,7 +6,8 @@ from translate_srt import translate_srt, TranslationDisplay, validate_srt_format
 from rich.console import Console
 from rich.live import Live
 
-def test_openai_client_mocked():
+@pytest.mark.asyncio
+async def test_openai_client_mocked():
     """Test translation with mocked OpenAI client"""
     mock_response = Mock()
     mock_response.choices = [Mock(message=Mock(content="Translated text"))]
@@ -22,7 +23,7 @@ def test_openai_client_mocked():
             )
             
             # Run translation with mocked dependencies
-            translate_srt(
+            await translate_srt(
                 "input.srt",
                 "output.srt",
                 "English",
@@ -38,7 +39,8 @@ def test_openai_client_mocked():
             assert any("English" in msg['content'] for msg in call_args['messages'])
             assert any("Spanish" in msg['content'] for msg in call_args['messages'])
 
-def test_file_operations_mocked(tmp_path):
+@pytest.mark.asyncio
+async def test_file_operations_mocked(tmp_path):
     """Test file operations with mocked filesystem"""
     input_file = tmp_path / "input.srt"
     output_file = tmp_path / "output.srt"
@@ -58,7 +60,7 @@ Test subtitle
         mock_create.return_value = mock_response
         
         # Run translation
-        translate_srt(
+        await translate_srt(
             str(input_file),
             str(output_file),
             "English",
