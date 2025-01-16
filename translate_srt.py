@@ -95,6 +95,9 @@ def validate_srt_format(content: str) -> None:
         console.print("[red]Error:[/red] SRT file is empty")
         sys.exit(1)
 
+if __name__ == "__main__":
+    asyncio.run(main())
+
     # Check basic structure
     entries = [e for e in content.strip().split("\n\n") if e.strip()]
     if not entries:
@@ -433,7 +436,7 @@ def display_final_summary(
         console.print(f"Total cost: [bold green]${total_cost:.4f}[/bold green]")
 
 
-def translate_srt(
+async def translate_srt(
     input_file: str,
     output_file: str,
     source_lang: str,
@@ -674,7 +677,7 @@ def translate_srt_quiet(
     )
 
 
-if __name__ == "__main__":
+async def main():
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
     console.print("Translates subtitles between languages using OPENAI\n")
 
@@ -712,7 +715,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        translate_srt(
+        await translate_srt(
             args.input_file,
             args.output_file,
             args.source_lang,
