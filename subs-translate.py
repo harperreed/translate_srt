@@ -280,7 +280,8 @@ def translate_srt(
     source_lang: str,
     target_lang: str,
     model: str,
-    dry_run: bool = False
+    dry_run: bool = False,
+    quiet: bool = False
 ) -> None:
     validate_language(source_lang)
     validate_language(target_lang)
@@ -293,7 +294,10 @@ def translate_srt(
         total_subs = len(subtitles)
         status.update(f"[bold green]Found {total_subs} subtitles to translate")
 
-    if dry_run:
+    if quiet and not dry_run:
+        translate_srt_quiet(subtitles, output_file, source_lang, target_lang, model)
+        return
+    elif dry_run:
         total_tokens = 0
         prompt_tokens = 0
         
@@ -426,6 +430,63 @@ def translate_srt(
         model
     )
 
+def translate_srt_quiet(
+    subtitles: List[srt.Subtitle],
+    output_file: str,
+    source_lang: str,
+    target_lang: str,
+    model: str
+) -> None:
+    """Translate subtitles with simple progress bar instead of TUI."""
+    translated_subtitles = []
+    total_prompt_tokens = 0
+    total_completion_tokens = 0
+    total_subs = len(subtitles)
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeRemainingColumn()
+    ) as progress:
+        task = progress.add_task("[cyan]Translating subtitles...", total=total_subs)
+
+        for sub in subtitles:
+            # Count tokens for this subtitle
+            system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
+            prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
+            
+            # Perform translation
+            translated_content = translate_text(sub.content, source_lang, target_lang, model)
+            
+            # Update token counts
+            completion_tokens = count_tokens(translated_content, model)
+            total_prompt_tokens += prompt_tokens
+            total_completion_tokens += completion_tokens
+            
+            translated_sub = srt.Subtitle(
+                index=sub.index,
+                start=sub.start,
+                end=sub.end,
+                content=translated_content
+            )
+            
+            translated_subtitles.append(translated_sub)
+            progress.advance(task)
+
+    # Write output file
+    write_srt(output_file, translated_subtitles)
+    
+    # Show final summary
+    display_final_summary(
+        total_subs,
+        len(translated_subtitles),
+        total_prompt_tokens,
+        total_completion_tokens,
+        model
+    )
+
 if __name__ == '__main__':
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
     console.print("Translates subtitles between languages using OPENAI\n")
@@ -440,11 +501,12 @@ if __name__ == '__main__':
     parser.add_argument('--model', default='gpt-4o-mini', 
                       help=f'OpenAI model to use (default: gpt-4o-mini). Supported: {", ".join(MODEL_PRICING.keys())}')
     parser.add_argument('--dry-run', action='store_true', help='Analyze token usage without performing translation')
+    parser.add_argument('--quiet', action='store_true', help='Use simple progress bar instead of TUI')
     
     args = parser.parse_args()
     
     try:
-        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang, args.model, args.dry_run)
+        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang, args.model, args.dry_run, args.quiet)
         console.print(f"\n[bold green]✓[/bold green] Translation completed successfully!")
         console.print(f"[dim]Output saved to:[/dim] {args.output_file}")
     except Exception as e:
