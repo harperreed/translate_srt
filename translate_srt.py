@@ -104,34 +104,44 @@ def validate_srt_format(content: str) -> None:
     for i, entry in enumerate(entries, 1):
         lines = [line for line in entry.strip().split("\n") if line.strip()]
         if len(lines) < 3:
-            console.print(f"[red]Error:[/red] Invalid entry format at subtitle {i}: Missing required components")
+            console.print(
+                f"[red]Error:[/red] Invalid entry format at subtitle {i}: Missing required components"
+            )
             sys.exit(1)
 
         # Validate entry has proper blank line separation
         if i < len(entries):
             entry_parts = content.split("\n\n")
-            if i-1 < len(entry_parts):
-                current_entry = entry_parts[i-1]
+            if i - 1 < len(entry_parts):
+                current_entry = entry_parts[i - 1]
                 next_entry = entry_parts[i] if i < len(entry_parts) else ""
                 if not (current_entry.endswith("\n") and next_entry.startswith("\n")):
-                    console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
+                    console.print(
+                        f"[red]Error:[/red] Missing blank line after subtitle {i}"
+                    )
                     sys.exit(1)
 
         # Validate index number
         try:
             index = int(lines[0])
             if index != i:
-                console.print(f"[red]Error:[/red] Invalid subtitle index at entry {i}: Expected {i}, got {index}")
+                console.print(
+                    f"[red]Error:[/red] Invalid subtitle index at entry {i}: Expected {i}, got {index}"
+                )
                 sys.exit(1)
         except ValueError:
-            console.print(f"[red]Error:[/red] Invalid subtitle index at entry {i}: Must be a number")
+            console.print(
+                f"[red]Error:[/red] Invalid subtitle index at entry {i}: Must be a number"
+            )
             sys.exit(1)
 
         # Validate timestamp format
         try:
             timestamp = lines[1]
             if " --> " not in timestamp:
-                console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing separator ' --> '")
+                console.print(
+                    f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing separator ' --> '"
+                )
                 sys.exit(1)
 
             start, end = timestamp.split(" --> ")
@@ -139,10 +149,14 @@ def validate_srt_format(content: str) -> None:
                 srt.srt_timestamp_to_timedelta(start)
                 srt.srt_timestamp_to_timedelta(end)
             except ValueError:
-                console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format")
+                console.print(
+                    f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format"
+                )
                 sys.exit(1)
         except IndexError:
-            console.print(f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing timestamp line")
+            console.print(
+                f"[red]Error:[/red] Invalid timestamp format at entry {i}: Missing timestamp line"
+            )
             sys.exit(1)
 
         # Validate subtitle text
