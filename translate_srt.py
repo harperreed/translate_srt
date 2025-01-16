@@ -111,10 +111,9 @@ def validate_srt_format(content: str) -> None:
 
         # Validate entry has proper blank line separation
         if i < len(entries):
-            entry_parts = content.split("\n\n")
-            if i - 1 < len(entry_parts):
-                current_entry = entry_parts[i - 1]
-                next_entry = entry_parts[i] if i < len(entry_parts) else ""
+            if not content.split("\n\n")[i-1].endswith("\n"):
+                console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
+                sys.exit(1)
 
         # Validate index number
         try:
@@ -216,7 +215,7 @@ class RateLimiter:
         self.batch_count += 1
 
     def should_batch_delay(self) -> bool:
-        return self.batch_count >= BATCH_SIZE - 1  # Changed to trigger after 2 requests
+        return self.batch_count >= 2  # Trigger after 2 requests
 
 
 def calculate_retry_delay(attempt: int) -> float:
