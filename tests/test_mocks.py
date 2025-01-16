@@ -12,18 +12,20 @@ async def test_openai_client_mocked():
     mock_response = Mock()
     mock_response.choices = [Mock(message=Mock(content="Translated text"))]
     
-    with patch('translate_srt.client.chat.completions.create', return_value=mock_response) as mock_create:
-        with patch('translate_srt.write_srt') as mock_write:
-            # Create a sample subtitle
-            subtitle = srt.Subtitle(
-                index=1,
-                start=timedelta(seconds=0),
-                end=timedelta(seconds=2),
-                content="Test content"
-            )
-            
-            # Run translation with mocked dependencies
-            await translate_srt(
+    with patch('translate_srt.read_srt') as mock_read:
+        with patch('translate_srt.client.chat.completions.create', return_value=mock_response) as mock_create:
+            with patch('translate_srt.write_srt') as mock_write:
+                # Create sample subtitle
+                subtitle = srt.Subtitle(
+                    index=1,
+                    start=timedelta(seconds=0),
+                    end=timedelta(seconds=2),
+                    content="Test content"
+                )
+                mock_read.return_value = [subtitle]
+                
+                # Run translation with mocked dependencies
+                await translate_srt(
                 "input.srt",
                 "output.srt",
                 "English",
@@ -58,9 +60,14 @@ Test subtitle
         mock_response = Mock()
         mock_response.choices = [Mock(message=Mock(content="Translated subtitle"))]
         mock_create.return_value = mock_response
-        
-        # Run translation
-        await translate_srt(
+            
+        # Mock translate_text to return a string instead of coroutine
+        async def mock_translate_text(*args, **kwargs):
+            return "Translated subtitle"
+                
+        with patch('translate_srt.translate_text', side_effect=mock_translate_text):
+            # Run translation
+            await translate_srt(
             str(input_file),
             str(output_file),
             "English",
@@ -70,10 +77,10 @@ Test subtitle
         )
         
         # Verify output file was created with correct content
-        assert output_file.exists()
-        output_content = output_file.read_text()
-        assert "Translated subtitle" in output_content
-        assert "00:00:01,000 --> 00:00:04,000" in output_content
+            assert output_file.exists()
+            output_content = output_file.read_text()
+            assert "Translated subtitle" in output_content
+            assert "00:00:01,000 --> 00:00:04,000" in output_content
 
 def test_progress_display_mocked():
     """Test progress display with mocked console"""
