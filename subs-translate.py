@@ -1,4 +1,5 @@
 import srt
+import argparse
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -47,9 +48,12 @@ def translate_srt(input_file, output_file):
     
     write_srt(output_file, translated_subtitles)
 
-# Usage
-input_file = 'Solitary Gourmet - S03E01 - Guinea Fowl and Eel Bowl of Akabane, Kita Ward WEBDL-1080p.ja.srt'
-output_file = 'Solitary Gourmet - S03E01 - Guinea Fowl and Eel Bowl of Akabane, Kita Ward WEBDL-1080p.en.srt'
-
-translate_srt(input_file, output_file)
-print(f"Translation completed. Output file: {output_file}")
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Translate SRT subtitles from Japanese to English')
+    parser.add_argument('input_file', help='Input SRT file path')
+    parser.add_argument('output_file', help='Output SRT file path')
+    
+    args = parser.parse_args()
+    
+    translate_srt(args.input_file, args.output_file)
+    print(f"Translation completed. Output file: {args.output_file}")
