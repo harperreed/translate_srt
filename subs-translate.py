@@ -92,7 +92,7 @@ def translate_srt(input_file, output_file, source_lang, target_lang, model):
 
 if __name__ == '__main__':
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
-    console.print("Translates subtitles between languages using GPT-4\n")
+    console.print("Translates subtitles between languages using OPENAI\n")
 
     parser = argparse.ArgumentParser(description='Translate SRT subtitles between languages')
     parser.add_argument('input_file', help='Input SRT file path')
@@ -101,7 +101,7 @@ if __name__ == '__main__':
                       help=f'Source language (default: Japanese). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--to', dest='target_lang', default='English',
                       help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
-    parser.add_argument('--model', default='gpt-4o', help='OpenAI model to use (default: gpt-4o)')
+    parser.add_argument('--model', default='gpt-4o-mini', help='OpenAI model to use (default: gpt-4o-mini)')
     
     args = parser.parse_args()
     
