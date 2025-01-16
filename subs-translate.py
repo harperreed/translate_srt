@@ -220,6 +220,7 @@ def translate_srt(
             cost_estimate = f"${total_cost:.2f}"
 
         console.print("\n[bold green]Dry Run Summary:[/bold green]")
+        console.print(f"Model: {model}")
         console.print(f"Number of subtitles: {total_subs}")
         console.print(f"Estimated prompt tokens: {prompt_tokens:,}")
         console.print(f"Estimated total tokens: {total_tokens:,}")
