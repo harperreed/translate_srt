@@ -482,7 +482,7 @@ def translate_srt(
             console.print(
                 f"\n[yellow]Warning:[/yellow] Cost estimation not available for model '{model}'"
             )
-            cost_estimate = "Unknown"
+            # cost_estimate = "Unknown"
         else:
             input_cost = (prompt_tokens / 1000) * MODEL_PRICING[model][0]
             output_cost = ((total_tokens - prompt_tokens) / 1000) * MODEL_PRICING[
