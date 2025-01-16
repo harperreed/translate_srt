@@ -35,7 +35,7 @@ def test_cli_missing_required_args(capsys):
     
     with pytest.raises(SystemExit) as exc_info:
         with patch('sys.argv', test_args):
-            import translate_srt
+            import translate_srt.__main__
     
     assert exc_info.value.code != 0
     captured = capsys.readouterr()

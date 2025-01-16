@@ -38,7 +38,7 @@ def test_read_srt_valid_file(temp_srt_file, valid_srt_content):
 
 def test_read_srt_file_not_found():
     """Test handling of non-existent file"""
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         read_srt("nonexistent_file.srt")
 
 

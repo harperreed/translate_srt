@@ -560,7 +560,7 @@ def translate_srt(
                 display.update_progress(sub.index, total_subs)
 
                 # Perform translation
-                translated_content = translate_text(
+                translated_content = await translate_text(
                     sub.content, source_lang, target_lang, model
                 )
 

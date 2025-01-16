@@ -84,8 +84,8 @@ def test_progress_display_mocked():
             display.update_progress(5, 10)
             display.update_stats(100, 150, 1000, 1500)
             
-            # Verify console updates
-            assert mock_live.called or mock_console.called
+            # Verify layout updates
+            assert len(display.layout["header"].renderable.renderable) > 0
             
             # Test cost calculation
             cost = display.calculate_cost(1000, 1500)

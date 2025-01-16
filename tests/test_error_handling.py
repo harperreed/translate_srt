@@ -11,7 +11,7 @@ def mock_openai():
 @pytest.mark.asyncio
 async def test_translation_api_error(mock_openai):
     """Test handling of API errors"""
-    mock_openai.side_effect = APIError("API Error")
+    mock_openai.side_effect = APIError(message="API Error", request=None)
     
     with pytest.raises(RuntimeError) as exc_info:
         await translate_text("Test text", "English", "Spanish", "gpt-4")
@@ -22,7 +22,11 @@ async def test_translation_api_error(mock_openai):
 @pytest.mark.asyncio
 async def test_translation_rate_limit(mock_openai):
     """Test handling of rate limit errors"""
-    mock_openai.side_effect = RateLimitError("Rate limit exceeded")
+    mock_openai.side_effect = RateLimitError(
+        message="Rate limit exceeded",
+        response=Mock(status_code=429),
+        body={"error": {"message": "Rate limit exceeded"}}
+    )
     
     with pytest.raises(RuntimeError) as exc_info:
         await translate_text("Test text", "English", "Spanish", "gpt-4")
@@ -33,7 +37,7 @@ async def test_translation_rate_limit(mock_openai):
 @pytest.mark.asyncio
 async def test_translation_connection_error(mock_openai):
     """Test handling of connection errors"""
-    mock_openai.side_effect = APIConnectionError("Connection failed")
+    mock_openai.side_effect = APIConnectionError()
     
     with pytest.raises(RuntimeError) as exc_info:
         await translate_text("Test text", "English", "Spanish", "gpt-4")
