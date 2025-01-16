@@ -454,7 +454,7 @@ async def translate_srt(
         status.update(f"[bold green]Found {total_subs} subtitles to translate")
 
     if quiet and not dry_run:
-        translate_srt_quiet(subtitles, output_file, source_lang, target_lang, model)
+        await translate_srt_quiet(subtitles, output_file, source_lang, target_lang, model)
         return
     elif dry_run:
         total_tokens = 0
@@ -612,7 +612,7 @@ async def translate_srt(
     )
 
 
-def translate_srt_quiet(
+async def translate_srt_quiet(
     subtitles: List[srt.Subtitle],
     output_file: str,
     source_lang: str,
