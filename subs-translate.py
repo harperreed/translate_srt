@@ -2,6 +2,7 @@ import srt
 import argparse
 import sys
 import time
+from typing import List, Optional, Sequence
 from openai import OpenAI
 from openai import APIError, RateLimitError, APIConnectionError
 from dotenv import load_dotenv
@@ -10,7 +11,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRe
 from rich import print as rprint
 
 # Supported languages
-SUPPORTED_LANGUAGES = [
+SUPPORTED_LANGUAGES: List[str] = [
     "English", "Spanish", "French", "German", "Italian", "Portuguese", 
     "Russian", "Japanese", "Chinese", "Korean", "Arabic"
 ]
@@ -24,8 +25,15 @@ client = OpenAI()
 # Set your OpenAI API key
 
 
-def validate_srt_format(content):
-    """Validate SRT file format requirements."""
+def validate_srt_format(content: str) -> None:
+    """Validate SRT file format requirements.
+    
+    Args:
+        content: The content of the SRT file as a string
+        
+    Raises:
+        ValueError: If the SRT format is invalid
+    """
     if not content.strip():
         raise ValueError("SRT file is empty")
         
@@ -63,7 +71,7 @@ def validate_srt_format(content):
         if not ''.join(lines[2:]).strip():
             raise ValueError(f"Empty subtitle text at entry {i}")
 
-def read_srt(file_path):
+def read_srt(file_path: str) -> List[srt.Subtitle]:
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
@@ -80,7 +88,7 @@ def read_srt(file_path):
         console.print(f"[red]Error:[/red] Failed to read SRT file: {str(e)}")
         sys.exit(1)
 
-def write_srt(file_path, subtitles):
+def write_srt(file_path: str, subtitles: Sequence[srt.Subtitle]) -> None:
     try:
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(srt.compose(subtitles))
@@ -91,7 +99,14 @@ def write_srt(file_path, subtitles):
     except Exception as e:
         raise RuntimeError(f"Unexpected error while writing output file: {str(e)}")
 
-def translate_text(text, source_lang, target_lang, model, max_retries=3, retry_delay=5):
+def translate_text(
+    text: str,
+    source_lang: str,
+    target_lang: str,
+    model: str,
+    max_retries: int = 3,
+    retry_delay: int = 5
+) -> str:
     # Check input text length (rough estimate: 4 chars per token)
     if len(text) > 4000:  # ~1000 tokens
         raise ValueError("Text too long for translation. Please break into smaller chunks.")
@@ -125,11 +140,17 @@ def translate_text(text, source_lang, target_lang, model, max_retries=3, retry_d
         except Exception as e:
             raise RuntimeError(f"Unexpected error during translation: {str(e)}")
 
-def validate_language(lang):
+def validate_language(lang: str) -> None:
     if lang not in SUPPORTED_LANGUAGES:
         raise ValueError(f"Unsupported language: {lang}\nSupported languages: {', '.join(SUPPORTED_LANGUAGES)}")
 
-def translate_srt(input_file, output_file, source_lang, target_lang, model):
+def translate_srt(
+    input_file: str,
+    output_file: str,
+    source_lang: str,
+    target_lang: str,
+    model: str
+) -> None:
     validate_language(source_lang)
     validate_language(target_lang)
     
