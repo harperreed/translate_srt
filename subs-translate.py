@@ -241,9 +241,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Translate SRT subtitles between languages')
     parser.add_argument('input_file', help='Input SRT file path')
     parser.add_argument('output_file', help='Output SRT file path')
-    parser.add_argument('--from', dest='source_lang', default='Japanese',
-                      help=f'Source language (default: Japanese). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
-    parser.add_argument('--to', dest='target_lang', default='English',
+    parser.add_argument('--from', dest='source_lang', default='English',
+                      help=f'Source language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
+    parser.add_argument('--to', dest='target_lang', default='Japanese',
                       help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--model', default='gpt-4o-mini', help='OpenAI model to use (default: gpt-4o-mini)')
     parser.add_argument('--dry-run', action='store_true', help='Analyze token usage without performing translation')
