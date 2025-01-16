@@ -4,8 +4,8 @@ from pathlib import Path
 import tempfile
 import os
 import asyncio
-from translate_srt import read_srt, validate_srt_format
-from translate_srt import TranslationDisplay, translate_text
+from subs.translate_srt import read_srt, validate_srt_format
+from subs.translate_srt import TranslationDisplay, translate_text
 
 @pytest.fixture
 def valid_srt_content():
