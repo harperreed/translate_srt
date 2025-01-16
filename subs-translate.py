@@ -2,7 +2,7 @@ import srt
 import argparse
 import sys
 import time
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Dict, Tuple
 from openai import OpenAI
 import tiktoken
 from openai import APIError, RateLimitError, APIConnectionError
@@ -23,7 +23,15 @@ load_dotenv()
 
 client = OpenAI()
 
-# Set your OpenAI API key
+# Model pricing per 1K tokens (input, output)
+MODEL_PRICING: Dict[str, Tuple[float, float]] = {
+    "gpt-4-1106-preview": (0.01, 0.03),
+    "gpt-4": (0.03, 0.06),
+    "gpt-4-32k": (0.06, 0.12),
+    "gpt-3.5-turbo-1106": (0.001, 0.002),
+    "gpt-3.5-turbo": (0.001, 0.002),
+    "gpt-3.5-turbo-16k": (0.003, 0.004)
+}
 
 
 def validate_srt_format(content: str) -> None:
@@ -201,10 +209,21 @@ def translate_srt(
                 
                 progress.advance(task)
         
+        # Calculate cost estimates
+        if model not in MODEL_PRICING:
+            console.print(f"\n[yellow]Warning:[/yellow] Cost estimation not available for model '{model}'")
+            cost_estimate = "Unknown"
+        else:
+            input_cost = (prompt_tokens / 1000) * MODEL_PRICING[model][0]
+            output_cost = ((total_tokens - prompt_tokens) / 1000) * MODEL_PRICING[model][1]
+            total_cost = input_cost + output_cost
+            cost_estimate = f"${total_cost:.2f}"
+
         console.print("\n[bold green]Dry Run Summary:[/bold green]")
         console.print(f"Number of subtitles: {total_subs}")
         console.print(f"Estimated prompt tokens: {prompt_tokens:,}")
         console.print(f"Estimated total tokens: {total_tokens:,}")
+        console.print(f"Estimated cost: {cost_estimate}")
         return
 
     translated_subtitles = []
@@ -245,7 +264,8 @@ if __name__ == '__main__':
                       help=f'Source language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--to', dest='target_lang', default='Japanese',
                       help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
-    parser.add_argument('--model', default='gpt-4o-mini', help='OpenAI model to use (default: gpt-4o-mini)')
+    parser.add_argument('--model', default='gpt-3.5-turbo', 
+                      help=f'OpenAI model to use (default: gpt-3.5-turbo). Supported: {", ".join(MODEL_PRICING.keys())}')
     parser.add_argument('--dry-run', action='store_true', help='Analyze token usage without performing translation')
     
     args = parser.parse_args()
