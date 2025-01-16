@@ -32,8 +32,8 @@ def write_srt(file_path, subtitles):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(srt.compose(subtitles))
 
-def translate_text(text, source_lang, target_lang):
-    response = client.chat.completions.create(model="gpt-4o-mini",
+def translate_text(text, source_lang, target_lang, model):
+    response = client.chat.completions.create(model=model,
     messages=[
         {"role": "system", "content": f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."},
         {"role": "user", "content": text}
@@ -41,7 +41,7 @@ def translate_text(text, source_lang, target_lang):
 
     return response.choices[0].message.content.strip()
 
-def translate_srt(input_file, output_file, source_lang, target_lang):
+def translate_srt(input_file, output_file, source_lang, target_lang, model):
     with console.status("[bold green]Reading subtitles...") as status:
         subtitles = read_srt(input_file)
         total_subs = len(subtitles)
@@ -59,7 +59,7 @@ def translate_srt(input_file, output_file, source_lang, target_lang):
         task = progress.add_task("[cyan]Translating subtitles...", total=total_subs)
         
         for sub in subtitles:
-            translated_content = translate_text(sub.content, source_lang, target_lang)
+            translated_content = translate_text(sub.content, source_lang, target_lang, model)
             
             translated_sub = srt.Subtitle(
                 index=sub.index,
@@ -83,11 +83,12 @@ if __name__ == '__main__':
     parser.add_argument('output_file', help='Output SRT file path')
     parser.add_argument('--from', dest='source_lang', default='Japanese', help='Source language (default: Japanese)')
     parser.add_argument('--to', dest='target_lang', default='English', help='Target language (default: English)')
+    parser.add_argument('--model', default='gpt-4o', help='OpenAI model to use (default: gpt-4o)')
     
     args = parser.parse_args()
     
     try:
-        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang)
+        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang, args.model)
         console.print(f"\n[bold green]✓[/bold green] Translation completed successfully!")
         console.print(f"[dim]Output saved to:[/dim] {args.output_file}")
     except Exception as e:
