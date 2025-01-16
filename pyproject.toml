@@ -9,4 +9,5 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "rich>=13.9.4",
     "srt>=3.5.3",
+    "tiktoken>=0.8.0",
 ]

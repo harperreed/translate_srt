@@ -30,12 +30,16 @@ client = OpenAI()
 
 # Model pricing per 1K tokens (input, output)
 MODEL_PRICING: Dict[str, Tuple[float, float]] = {
-    "gpt-4-1106-preview": (0.01, 0.03),
-    "gpt-4": (0.03, 0.06),
-    "gpt-4-32k": (0.06, 0.12),
-    "gpt-3.5-turbo-1106": (0.01, 0.002),
-    "gpt-3.5-turbo": (0.001, 0.2),
-    "gpt-3.5-turbo-16k": (0.03, 0.004)
+    "gpt-4-1106-preview": (0.01, 0.03),  # $10.00 / 1M input tokens, $30.00 / 1M output tokens
+    "gpt-4": (0.03, 0.06),               # $30.00 / 1M input tokens, $60.00 / 1M output tokens
+    "gpt-4-32k": (0.06, 0.12),           # $60.00 / 1M input tokens, $120.00 / 1M output tokens
+    "gpt-3.5-turbo-1106": (0.0015, 0.002),  # $1.50 / 1M input tokens, $2.00 / 1M output tokens
+    "gpt-3.5-turbo": (0.0015, 0.002),    # $1.50 / 1M input tokens, $2.00 / 1M output tokens
+    "gpt-3.5-turbo-16k": (0.003, 0.004), # $3.00 / 1M input tokens, $4.00 / 1M output tokens
+    "gpt-4o": (0.0025, 0.01),            # $2.50 / 1M input tokens, $10.00 / 1M output tokens
+    "gpt-4o-mini": (0.00015, 0.0006),    # $0.15 / 1M input tokens, $0.60 / 1M output tokens
+    "o1": (0.015, 0.06),                 # $15.00 / 1M input tokens, $60.00 / 1M output tokens
+    "o1-mini": (0.003, 0.012)            # $3.00 / 1M input tokens, $12.00 / 1M output tokens
 }
 
 
@@ -433,8 +437,8 @@ if __name__ == '__main__':
                       help=f'Source language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
     parser.add_argument('--to', dest='target_lang', default='Japanese',
                       help=f'Target language (default: English). Supported: {", ".join(SUPPORTED_LANGUAGES)}')
-    parser.add_argument('--model', default='gpt-3.5-turbo', 
-                      help=f'OpenAI model to use (default: gpt-3.5-turbo). Supported: {", ".join(MODEL_PRICING.keys())}')
+    parser.add_argument('--model', default='gpt-4o-mini', 
+                      help=f'OpenAI model to use (default: gpt-4o-mini). Supported: {", ".join(MODEL_PRICING.keys())}')
     parser.add_argument('--dry-run', action='store_true', help='Analyze token usage without performing translation')
     
     args = parser.parse_args()
