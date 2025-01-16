@@ -32,16 +32,16 @@ def write_srt(file_path, subtitles):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(srt.compose(subtitles))
 
-def translate_text(text):
+def translate_text(text, source_lang, target_lang):
     response = client.chat.completions.create(model="gpt-4o-mini",
     messages=[
-        {"role": "system", "content": "You are a professional translator. Translate the following Japanese text to English. Maintain the original meaning and nuance as much as possible."},
+        {"role": "system", "content": f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."},
         {"role": "user", "content": text}
     ])
 
     return response.choices[0].message.content.strip()
 
-def translate_srt(input_file, output_file):
+def translate_srt(input_file, output_file, source_lang, target_lang):
     with console.status("[bold green]Reading subtitles...") as status:
         subtitles = read_srt(input_file)
         total_subs = len(subtitles)
@@ -59,7 +59,7 @@ def translate_srt(input_file, output_file):
         task = progress.add_task("[cyan]Translating subtitles...", total=total_subs)
         
         for sub in subtitles:
-            translated_content = translate_text(sub.content)
+            translated_content = translate_text(sub.content, source_lang, target_lang)
             
             translated_sub = srt.Subtitle(
                 index=sub.index,
@@ -76,16 +76,18 @@ def translate_srt(input_file, output_file):
 
 if __name__ == '__main__':
     console.print("[bold blue]SRT Subtitle Translator[/bold blue]")
-    console.print("Translates Japanese subtitles to English using GPT-4\n")
+    console.print("Translates subtitles between languages using GPT-4\n")
 
-    parser = argparse.ArgumentParser(description='Translate SRT subtitles from Japanese to English')
+    parser = argparse.ArgumentParser(description='Translate SRT subtitles between languages')
     parser.add_argument('input_file', help='Input SRT file path')
     parser.add_argument('output_file', help='Output SRT file path')
+    parser.add_argument('--from', dest='source_lang', default='Japanese', help='Source language (default: Japanese)')
+    parser.add_argument('--to', dest='target_lang', default='English', help='Target language (default: English)')
     
     args = parser.parse_args()
     
     try:
-        translate_srt(args.input_file, args.output_file)
+        translate_srt(args.input_file, args.output_file, args.source_lang, args.target_lang)
         console.print(f"\n[bold green]✓[/bold green] Translation completed successfully!")
         console.print(f"[dim]Output saved to:[/dim] {args.output_file}")
     except Exception as e:
