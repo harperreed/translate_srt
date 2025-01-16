@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
 from rich import print as rprint
+from rich.layout import Layout
+from rich.live import Live
+from rich.panel import Panel
+from rich.table import Table
 
 # Supported languages
 SUPPORTED_LANGUAGES: List[str] = [
@@ -163,6 +167,43 @@ def count_tokens(text: str, model: str) -> int:
         encoding = tiktoken.get_encoding("cl100k_base")
         return len(encoding.encode(text))
 
+class TranslationDisplay:
+    def __init__(self):
+        self.layout = Layout()
+        self.layout.split_column(
+            Layout(name="header", size=3),
+            Layout(name="main"),
+            Layout(name="footer", size=3)
+        )
+        self.layout["main"].split_row(
+            Layout(name="source", ratio=1),
+            Layout(name="target", ratio=1)
+        )
+        
+    def update_header(self, current: int, total: int, total_tokens: int):
+        self.layout["header"].update(
+            Panel(
+                f"[bold blue]Translating subtitle {current}/{total}[/bold blue]\n"
+                f"Total tokens used: [yellow]{total_tokens:,}[/yellow]",
+                title="SRT Translator"
+            )
+        )
+    
+    def update_source(self, text: str):
+        self.layout["source"].update(
+            Panel(text, title="Source Text", border_style="blue")
+        )
+    
+    def update_target(self, text: str):
+        self.layout["target"].update(
+            Panel(text, title="Translation", border_style="green")
+        )
+    
+    def update_footer(self, status: str):
+        self.layout["footer"].update(
+            Panel(status, border_style="yellow")
+        )
+
 def translate_srt(
     input_file: str,
     output_file: str,
@@ -229,35 +270,32 @@ def translate_srt(
 
     translated_subtitles = []
     total_tokens = 0
+    display = TranslationDisplay()
     
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TimeRemainingColumn(),
-    ) as progress:
-        task = progress.add_task("[cyan]Translating subtitles...", total=total_subs)
-        
+    with Live(display.layout, refresh_per_second=4, screen=True):
         for sub in subtitles:
             # Count tokens for this subtitle
             system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
             prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
             
-            # Show current subtitle being translated
-            console.print(f"\n[yellow]Translating[/yellow] ({sub.index}/{total_subs}):")
-            console.print(f"[dim]{sub.content}[/dim]")
+            # Update display with current subtitle
+            display.update_header(sub.index, total_subs, total_tokens)
+            display.update_source(sub.content)
+            display.update_footer(f"Processing subtitle {sub.index}...")
             
+            # Perform translation
             translated_content = translate_text(sub.content, source_lang, target_lang, model)
             
-            # Show translation result
-            console.print(f"[green]→[/green] {translated_content}")
-            
-            # Update token count and show
+            # Update token counts and display
             response_tokens = count_tokens(translated_content, model)
             total_tokens += prompt_tokens + response_tokens
-            console.print(f"[blue]Tokens this subtitle:[/blue] {prompt_tokens + response_tokens:,}")
-            console.print(f"[blue]Total tokens so far:[/blue] {total_tokens:,}")
+            
+            # Update translation result
+            display.update_target(translated_content)
+            display.update_footer(
+                f"Tokens this subtitle: {prompt_tokens + response_tokens:,} | "
+                f"Progress: {sub.index}/{total_subs}"
+            )
             
             translated_sub = srt.Subtitle(
                 index=sub.index,
@@ -267,7 +305,6 @@ def translate_srt(
             )
             
             translated_subtitles.append(translated_sub)
-            progress.advance(task)
     
     with console.status("[bold green]Writing output file..."):
         write_srt(output_file, translated_subtitles)
