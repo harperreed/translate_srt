@@ -309,6 +309,8 @@ def translate_srt(
     translated_subtitles = []
     total_prompt_tokens = 0
     total_completion_tokens = 0
+    total_tokens = 0
+    total_cost = 0.0
     display = TranslationDisplay(model)
     
     with Live(display.layout, refresh_per_second=4, screen=True):
