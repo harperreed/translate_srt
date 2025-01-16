@@ -24,10 +24,55 @@ client = OpenAI()
 # Set your OpenAI API key
 
 
+def validate_srt_format(content):
+    """Validate SRT file format requirements."""
+    if not content.strip():
+        raise ValueError("SRT file is empty")
+        
+    # Check basic structure
+    entries = content.strip().split('\n\n')
+    if not entries:
+        raise ValueError("No subtitle entries found")
+        
+    for i, entry in enumerate(entries, 1):
+        lines = entry.strip().split('\n')
+        if len(lines) < 3:
+            raise ValueError(f"Invalid entry format at subtitle {i}: Missing required components")
+            
+        # Validate index number
+        try:
+            index = int(lines[0])
+            if index != i:
+                raise ValueError(f"Invalid subtitle index at entry {i}: Expected {i}, got {index}")
+        except ValueError:
+            raise ValueError(f"Invalid subtitle index at entry {i}: Must be a number")
+            
+        # Validate timestamp format
+        timestamp = lines[1]
+        if ' --> ' not in timestamp:
+            raise ValueError(f"Invalid timestamp format at entry {i}: Missing separator ' --> '")
+            
+        start, end = timestamp.split(' --> ')
+        try:
+            srt.srt_timestamp_to_timedelta(start)
+            srt.srt_timestamp_to_timedelta(end)
+        except ValueError:
+            raise ValueError(f"Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format")
+            
+        # Validate subtitle text
+        if not ''.join(lines[2:]).strip():
+            raise ValueError(f"Empty subtitle text at entry {i}")
+
 def read_srt(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
-            return list(srt.parse(file))
+            content = file.read()
+            
+        # Validate SRT format
+        validate_srt_format(content)
+        
+        # Parse after validation
+        return list(srt.parse(content))
     except FileNotFoundError:
         console.print(f"[red]Error:[/red] Input file '{file_path}' not found")
         sys.exit(1)
