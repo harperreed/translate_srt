@@ -36,8 +36,15 @@ def read_srt(file_path):
         sys.exit(1)
 
 def write_srt(file_path, subtitles):
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(srt.compose(subtitles))
+    try:
+        with open(file_path, 'w', encoding='utf-8') as file:
+            file.write(srt.compose(subtitles))
+    except PermissionError:
+        raise RuntimeError(f"Permission denied when writing to '{file_path}'. Check file permissions.")
+    except OSError as e:
+        raise RuntimeError(f"Failed to write output file '{file_path}': {str(e)}")
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error while writing output file: {str(e)}")
 
 def translate_text(text, source_lang, target_lang, model, max_retries=3, retry_delay=5):
     # Check input text length (rough estimate: 4 chars per token)
