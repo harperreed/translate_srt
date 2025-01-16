@@ -9,7 +9,7 @@ def display():
 def test_display_update_header(display):
     """Test header updates with progress"""
     display.update_header(5, 10, 1000, 0.25)
-    header_content = display.layout["header"].renderable.content
+    header_content = display.layout["header"].renderable.renderable
     assert "5/10" in header_content
     assert "1,000" in header_content
     assert "$0.25" in header_content
@@ -18,7 +18,7 @@ def test_display_update_header(display):
 def test_display_update_stats(display):
     """Test statistics display updates"""
     display.update_stats(100, 150, 1000, 1500)
-    stats_content = display.layout["stats"].renderable.content
+    stats_content = display.layout["stats"].renderable.renderable
     assert "1,000" in stats_content  # Total prompt tokens
     assert "1,500" in stats_content  # Total completion tokens
     assert "2,500" in stats_content  # Total tokens (1000 + 1500)
@@ -32,7 +32,7 @@ def test_display_update_stats(display):
 def test_display_progress_bar(display):
     """Test progress bar calculations"""
     display.update_progress(7, 10)
-    progress_content = display.layout["progress"].renderable.content
+    progress_content = display.layout["progress"].renderable.renderable
     
     # Check percentage
     assert "70.0%" in progress_content
@@ -58,7 +58,7 @@ def test_display_cost_formatting(display):
     
     # Test formatting in header display
     display.update_header(1, 10, prompt_tokens + completion_tokens, total_cost)
-    header_content = display.layout["header"].renderable.content
+    header_content = display.layout["header"].renderable.renderable
     assert f"${total_cost:.4f}" in header_content
 
 def test_display_unknown_model():
@@ -69,5 +69,5 @@ def test_display_unknown_model():
     
     # Should still format stats without cost information
     unknown_display.update_stats(100, 150, 1000, 1500)
-    stats_content = unknown_display.layout["stats"].renderable.content
+    stats_content = unknown_display.layout["stats"].renderable.renderable
     assert "2,500" in stats_content  # Should show total tokens
