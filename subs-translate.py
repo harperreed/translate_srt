@@ -211,11 +211,14 @@ class TranslationDisplay:
     
     def update_stats(self, prompt_tokens: int, completion_tokens: int):
         subtitle_cost = self.calculate_cost(prompt_tokens, completion_tokens)
+        model_input_rate = f"${MODEL_PRICING[self.model][0]:.3f}" if self.model in MODEL_PRICING else "N/A"
+        model_output_rate = f"${MODEL_PRICING[self.model][1]:.3f}" if self.model in MODEL_PRICING else "N/A"
+        
         self.layout["stats"].update(
             Panel(
                 f"Current subtitle stats:\n"
-                f"Prompt tokens: [blue]{prompt_tokens:,}[/blue] | "
-                f"Completion tokens: [blue]{completion_tokens:,}[/blue]\n"
+                f"Prompt tokens: [blue]{prompt_tokens:,}[/blue] (${(prompt_tokens/1000 * MODEL_PRICING[self.model][0]):.4f} @ {model_input_rate}/1K) | "
+                f"Completion tokens: [blue]{completion_tokens:,}[/blue] (${(completion_tokens/1000 * MODEL_PRICING[self.model][1]):.4f} @ {model_output_rate}/1K)\n"
                 f"Total tokens this subtitle: [yellow]{prompt_tokens + completion_tokens:,}[/yellow]\n"
                 f"Cost this subtitle: [green]${subtitle_cost:.4f}[/green]",
                 border_style="cyan"
@@ -284,11 +287,23 @@ def translate_srt(
             cost_estimate = f"${total_cost:.2f}"
 
         console.print("\n[bold green]Dry Run Summary:[/bold green]")
-        console.print(f"Model: {model}")
-        console.print(f"Number of subtitles: {total_subs}")
-        console.print(f"Estimated prompt tokens: {prompt_tokens:,}")
-        console.print(f"Estimated total tokens: {total_tokens:,}")
-        console.print(f"Estimated cost: {cost_estimate}")
+        console.print(f"Model: [blue]{model}[/blue]")
+        console.print(f"Number of subtitles: [yellow]{total_subs:,}[/yellow]")
+        
+        if model in MODEL_PRICING:
+            input_rate, output_rate = MODEL_PRICING[model]
+            estimated_output_tokens = total_tokens - prompt_tokens
+            input_cost = (prompt_tokens / 1000) * input_rate
+            output_cost = (estimated_output_tokens / 1000) * output_rate
+            
+            console.print(f"Input tokens: [blue]{prompt_tokens:,}[/blue] (${input_cost:.4f} @ ${input_rate:.3f}/1K tokens)")
+            console.print(f"Estimated output tokens: [blue]{estimated_output_tokens:,}[/blue] (${output_cost:.4f} @ ${output_rate:.3f}/1K tokens)")
+            console.print(f"Estimated total tokens: [yellow]{total_tokens:,}[/yellow]")
+            console.print(f"[bold green]Estimated total cost: ${input_cost + output_cost:.4f}[/bold green]")
+        else:
+            console.print(f"Estimated prompt tokens: {prompt_tokens:,}")
+            console.print(f"Estimated total tokens: {total_tokens:,}")
+            console.print("[yellow]Note: Cost estimation not available for this model[/yellow]")
         return
 
     translated_subtitles = []
