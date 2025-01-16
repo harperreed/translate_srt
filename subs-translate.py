@@ -20,7 +20,6 @@ console = Console()
 load_dotenv()
 
 client = OpenAI()
-from tqdm import tqdm
 
 # Set your OpenAI API key
 
