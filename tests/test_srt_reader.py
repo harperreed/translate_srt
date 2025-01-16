@@ -3,7 +3,7 @@ import srt
 from pathlib import Path
 import tempfile
 import os
-from subs_translate import read_srt, validate_srt_format
+from translate_srt import read_srt, validate_srt_format
 from translate_srt import TranslationDisplay
 
 @pytest.fixture
