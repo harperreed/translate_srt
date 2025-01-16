@@ -1,3 +1,4 @@
+```markdown
 # 📄 Subs Translator
 
 ## 📝 Summary of Project
@@ -31,7 +32,7 @@ To get started with the Subs Translator, follow these simple steps:
      ```
      OPENAI_API_KEY=your_api_key_here
      ```
-   
+
 5. **Prepare Your Subtitle Files**:
    Ensure you have your Japanese subtitle file ready in `.srt` format.
 
@@ -55,18 +56,14 @@ To get started with the Subs Translator, follow these simple steps:
 ## 🔧 Tech Info
 - **Programming Language**: Python
 - **Dependencies**: 
-  - `srt` for handling subtitle files
-  - `openai` for accessing OpenAI's language models
-  - `dotenv` for environment variable management
-  - `tqdm` for progress bars on translations
-- **Project Structure**:
-  ```
-  ├── .gitignore
-  ├── .python-version
-  ├── pyproject.toml
-  └── subs-translate.py
-  ```
+  - openai >= 1.59.7
+  - python-dotenv >= 1.0.1
+  - rich >= 13.9.4
+  - srt >= 3.5.3
 
-- **OpenAI Model Used**: Currently set to interact with `gpt-4o-mini` for text translation.
+For further technical specifications, please refer to the code within the repository. 
 
-Feel free to explore the code or contribute to the project! Your contributions and feedback are welcome. If you have any questions or issues, please raise an issue in this repository. Happy translating! 🌟
+--- 
+📅 Last updated on: 2025-01-16
+```
+
