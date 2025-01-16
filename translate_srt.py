@@ -96,16 +96,22 @@ def validate_srt_format(content: str) -> None:
         sys.exit(1)
 
     # Check basic structure
-    entries = content.strip().split("\n\n")
+    entries = [e for e in content.strip().split("\n\n") if e.strip()]
     if not entries:
         console.print("[red]Error:[/red] No subtitle entries found")
         sys.exit(1)
 
     for i, entry in enumerate(entries, 1):
-        lines = entry.strip().split("\n")
+        lines = [l for l in entry.strip().split("\n") if l.strip()]
         if len(lines) < 3:
             console.print(f"[red]Error:[/red] Invalid entry format at subtitle {i}: Missing required components")
             sys.exit(1)
+
+        # Validate entry has proper blank line separation
+        if i < len(entries):
+            if not content.split("\n\n")[i-1].endswith("\n\n"):
+                console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
+                sys.exit(1)
 
         # Validate index number
         try:
