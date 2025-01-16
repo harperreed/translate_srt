@@ -134,7 +134,8 @@ def validate_srt_format(content: str) -> None:
 
         # Validate subtitle text
         if not "".join(lines[2:]).strip():
-            raise ValueError(f"Empty subtitle text at entry {i}")
+            console.print(f"[red]Error:[/red] Empty subtitle text at entry {i}")
+            sys.exit(1)
 
 
 def read_srt(file_path: str) -> List[srt.Subtitle]:
