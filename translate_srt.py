@@ -642,7 +642,7 @@ def translate_srt_quiet(
             )
 
             # Perform translation
-            translated_content = translate_text(
+            translated_content = await translate_text(
                 sub.content, source_lang, target_lang, model
             )
 
