@@ -102,7 +102,7 @@ def validate_srt_format(content: str) -> None:
         sys.exit(1)
 
     for i, entry in enumerate(entries, 1):
-        lines = [l for l in entry.strip().split("\n") if l.strip()]
+        lines = [line for line in entry.strip().split("\n") if line.strip()]
         if len(lines) < 3:
             console.print(f"[red]Error:[/red] Invalid entry format at subtitle {i}: Missing required components")
             sys.exit(1)
@@ -112,7 +112,8 @@ def validate_srt_format(content: str) -> None:
             entry_parts = content.split("\n\n")
             if i-1 < len(entry_parts):
                 current_entry = entry_parts[i-1]
-                if not (current_entry.endswith("\n") or current_entry.endswith("\n\n")):
+                next_entry = entry_parts[i] if i < len(entry_parts) else ""
+                if not (current_entry.endswith("\n") and next_entry.startswith("\n")):
                     console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
                     sys.exit(1)
 
