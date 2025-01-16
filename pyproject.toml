@@ -12,6 +12,8 @@ dependencies = [
     "rich>=13.9.4",
     "srt>=3.5.3",
     "tiktoken>=0.8.0",
+    "pytest-cov>=6.0.0",
+    "pytest-mock>=3.14.0",
 ]
 
 
