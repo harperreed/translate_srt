@@ -12,3 +12,8 @@ dependencies = [
     "srt>=3.5.3",
     "tiktoken>=0.8.0",
 ]
+
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
