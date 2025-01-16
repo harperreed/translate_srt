@@ -228,6 +228,7 @@ def translate_srt(
         return
 
     translated_subtitles = []
+    total_tokens = 0
     
     with Progress(
         SpinnerColumn(),
@@ -239,7 +240,24 @@ def translate_srt(
         task = progress.add_task("[cyan]Translating subtitles...", total=total_subs)
         
         for sub in subtitles:
+            # Count tokens for this subtitle
+            system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
+            prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
+            
+            # Show current subtitle being translated
+            console.print(f"\n[yellow]Translating[/yellow] ({sub.index}/{total_subs}):")
+            console.print(f"[dim]{sub.content}[/dim]")
+            
             translated_content = translate_text(sub.content, source_lang, target_lang, model)
+            
+            # Show translation result
+            console.print(f"[green]→[/green] {translated_content}")
+            
+            # Update token count and show
+            response_tokens = count_tokens(translated_content, model)
+            total_tokens += prompt_tokens + response_tokens
+            console.print(f"[blue]Tokens this subtitle:[/blue] {prompt_tokens + response_tokens:,}")
+            console.print(f"[blue]Total tokens so far:[/blue] {total_tokens:,}")
             
             translated_sub = srt.Subtitle(
                 index=sub.index,
