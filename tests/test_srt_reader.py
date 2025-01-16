@@ -56,9 +56,10 @@ def test_read_srt_malformed_content(temp_srt_file):
     """Test handling of malformed SRT content"""
     malformed_content = """1
 00:00:01,000 --> 00:00:04,000
-Missing blank line2
-Invalid timestamp --> Invalid
-Text content"""
+First subtitle
+2
+Invalid timestamp
+Third subtitle"""
     with open(temp_srt_file, "w", encoding="utf-8") as f:
         f.write(malformed_content)
 

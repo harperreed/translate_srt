@@ -143,7 +143,7 @@ def validate_srt_format(content: str) -> None:
             try:
                 srt.srt_timestamp_to_timedelta(start)
                 srt.srt_timestamp_to_timedelta(end)
-            except ValueError:
+            except (ValueError, AttributeError):
                 console.print(
                     f"[red]Error:[/red] Invalid timestamp format at entry {i}: Must be in HH:MM:SS,mmm format"
                 )
