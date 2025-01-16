@@ -168,11 +168,13 @@ def count_tokens(text: str, model: str) -> int:
         return len(encoding.encode(text))
 
 class TranslationDisplay:
-    def __init__(self):
+    def __init__(self, model: str):
         self.layout = Layout()
+        self.model = model
         self.layout.split_column(
             Layout(name="header", size=3),
             Layout(name="main"),
+            Layout(name="stats", size=4),
             Layout(name="footer", size=3)
         )
         self.layout["main"].split_row(
@@ -180,11 +182,19 @@ class TranslationDisplay:
             Layout(name="target", ratio=1)
         )
         
-    def update_header(self, current: int, total: int, total_tokens: int):
+    def calculate_cost(self, prompt_tokens: int, completion_tokens: int) -> float:
+        if self.model not in MODEL_PRICING:
+            return 0.0
+        input_cost = (prompt_tokens / 1000) * MODEL_PRICING[self.model][0]
+        output_cost = (completion_tokens / 1000) * MODEL_PRICING[self.model][1]
+        return input_cost + output_cost
+        
+    def update_header(self, current: int, total: int, total_tokens: int, total_cost: float):
         self.layout["header"].update(
             Panel(
                 f"[bold blue]Translating subtitle {current}/{total}[/bold blue]\n"
-                f"Total tokens used: [yellow]{total_tokens:,}[/yellow]",
+                f"Total tokens: [yellow]{total_tokens:,}[/yellow] | "
+                f"Total cost: [green]${total_cost:.4f}[/green]",
                 title="SRT Translator"
             )
         )
@@ -197,6 +207,19 @@ class TranslationDisplay:
     def update_target(self, text: str):
         self.layout["target"].update(
             Panel(text, title="Translation", border_style="green")
+        )
+    
+    def update_stats(self, prompt_tokens: int, completion_tokens: int):
+        subtitle_cost = self.calculate_cost(prompt_tokens, completion_tokens)
+        self.layout["stats"].update(
+            Panel(
+                f"Current subtitle stats:\n"
+                f"Prompt tokens: [blue]{prompt_tokens:,}[/blue] | "
+                f"Completion tokens: [blue]{completion_tokens:,}[/blue]\n"
+                f"Total tokens this subtitle: [yellow]{prompt_tokens + completion_tokens:,}[/yellow]\n"
+                f"Cost this subtitle: [green]${subtitle_cost:.4f}[/green]",
+                border_style="cyan"
+            )
         )
     
     def update_footer(self, status: str):
@@ -270,7 +293,8 @@ def translate_srt(
 
     translated_subtitles = []
     total_tokens = 0
-    display = TranslationDisplay()
+    total_cost = 0.0
+    display = TranslationDisplay(model)
     
     with Live(display.layout, refresh_per_second=4, screen=True):
         for sub in subtitles:
@@ -279,7 +303,7 @@ def translate_srt(
             prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
             
             # Update display with current subtitle
-            display.update_header(sub.index, total_subs, total_tokens)
+            display.update_header(sub.index, total_subs, total_tokens, total_cost)
             display.update_source(sub.content)
             display.update_footer(f"Processing subtitle {sub.index}...")
             
@@ -287,15 +311,18 @@ def translate_srt(
             translated_content = translate_text(sub.content, source_lang, target_lang, model)
             
             # Update token counts and display
-            response_tokens = count_tokens(translated_content, model)
-            total_tokens += prompt_tokens + response_tokens
+            completion_tokens = count_tokens(translated_content, model)
+            total_tokens += prompt_tokens + completion_tokens
             
-            # Update translation result
+            # Calculate and update costs
+            subtitle_cost = display.calculate_cost(prompt_tokens, completion_tokens)
+            total_cost += subtitle_cost
+            
+            # Update all display components
+            display.update_header(sub.index, total_subs, total_tokens, total_cost)
             display.update_target(translated_content)
-            display.update_footer(
-                f"Tokens this subtitle: {prompt_tokens + response_tokens:,} | "
-                f"Progress: {sub.index}/{total_subs}"
-            )
+            display.update_stats(prompt_tokens, completion_tokens)
+            display.update_footer(f"Progress: {sub.index}/{total_subs}")
             
             translated_sub = srt.Subtitle(
                 index=sub.index,
