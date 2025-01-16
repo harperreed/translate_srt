@@ -111,8 +111,9 @@ def validate_srt_format(content: str) -> None:
 
         # Validate entry has proper blank line separation
         if i < len(entries):
-            if not content.split("\n\n")[i-1].endswith("\n"):
-                console.print(f"[red]Error:[/red] Missing blank line after subtitle {i}")
+            entry_parts = content.split("\n\n")
+            if i < len(entry_parts) and not entry_parts[i-1].strip():
+                console.print(f"[red]Error:[/red] Empty subtitle entry at position {i}")
                 sys.exit(1)
 
         # Validate index number
