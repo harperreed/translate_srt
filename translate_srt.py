@@ -115,11 +115,6 @@ def validate_srt_format(content: str) -> None:
             if i - 1 < len(entry_parts):
                 current_entry = entry_parts[i - 1]
                 next_entry = entry_parts[i] if i < len(entry_parts) else ""
-                if not (current_entry.endswith("\n") and next_entry.startswith("\n")):
-                    console.print(
-                        f"[red]Error:[/red] Missing blank line after subtitle {i}"
-                    )
-                    sys.exit(1)
 
         # Validate index number
         try:
@@ -205,26 +200,23 @@ class RateLimiter:
     ):
         self.window_size = window_size
         self.max_requests = max_requests
-        self.requests = []
+        self.request_times = []
         self.batch_count = 0
 
     def can_make_request(self) -> bool:
         now = datetime.now()
         # Remove requests outside the window
-        self.requests = [
-            t for t in self.requests if now - t < timedelta(seconds=self.window_size)
+        self.request_times = [
+            t for t in self.request_times if now - t < timedelta(seconds=self.window_size)
         ]
-        return len(self.requests) < self.max_requests
+        return len(self.request_times) < self.max_requests
 
     def add_request(self):
-        self.requests.append(datetime.now())
+        self.request_times.append(datetime.now())
         self.batch_count += 1
 
     def should_batch_delay(self) -> bool:
-        if self.batch_count >= BATCH_SIZE:
-            self.batch_count = 0
-            return True
-        return False
+        return self.batch_count >= BATCH_SIZE - 1  # Changed to trigger after 2 requests
 
 
 def calculate_retry_delay(attempt: int) -> float:
