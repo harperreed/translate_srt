@@ -95,9 +95,6 @@ def validate_srt_format(content: str) -> None:
         console.print("[red]Error:[/red] SRT file is empty")
         sys.exit(1)
 
-if __name__ == "__main__":
-    asyncio.run(main())
-
     # Check basic structure
     entries = [e for e in content.strip().split("\n\n") if e.strip()]
     if not entries:
