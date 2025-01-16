@@ -370,14 +370,14 @@ def translate_srt(
     try:
         with Live(display.layout, refresh_per_second=4, screen=True):
             for sub in subtitles:
-            # Count tokens for this subtitle
-            system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
-            prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
-            
-            # Update display with current subtitle
-            display.update_header(sub.index, total_subs, total_tokens, total_cost)
-            display.update_source(sub.content)
-            display.update_footer(f"Processing subtitle {sub.index}...")
+                # Count tokens for this subtitle
+                system_msg = f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."
+                prompt_tokens = count_tokens(system_msg, model) + count_tokens(sub.content, model)
+                
+                # Update display with current subtitle
+                display.update_header(sub.index, total_subs, total_tokens, total_cost)
+                display.update_source(sub.content)
+                display.update_footer(f"Processing subtitle {sub.index}...")
             
             # Perform translation
             translated_content = translate_text(sub.content, source_lang, target_lang, model)
