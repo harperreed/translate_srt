@@ -1,7 +1,9 @@
 import srt
 import argparse
 import sys
+import time
 from openai import OpenAI
+from openai import APIError, RateLimitError, APIConnectionError
 from dotenv import load_dotenv
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeRemainingColumn
@@ -38,14 +40,39 @@ def write_srt(file_path, subtitles):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(srt.compose(subtitles))
 
-def translate_text(text, source_lang, target_lang, model):
-    response = client.chat.completions.create(model=model,
-    messages=[
-        {"role": "system", "content": f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."},
-        {"role": "user", "content": text}
-    ])
-
-    return response.choices[0].message.content.strip()
+def translate_text(text, source_lang, target_lang, model, max_retries=3, retry_delay=5):
+    # Check input text length (rough estimate: 4 chars per token)
+    if len(text) > 4000:  # ~1000 tokens
+        raise ValueError("Text too long for translation. Please break into smaller chunks.")
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": f"You are a professional translator. Translate the following {source_lang} text to {target_lang}. Maintain the original meaning and nuance as much as possible."},
+                    {"role": "user", "content": text}
+                ]
+            )
+            return response.choices[0].message.content.strip()
+            
+        except RateLimitError:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+                continue
+            raise RuntimeError("OpenAI API rate limit exceeded. Please try again later.")
+            
+        except APIConnectionError:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                continue
+            raise RuntimeError("Failed to connect to OpenAI API. Please check your internet connection.")
+            
+        except APIError as e:
+            raise RuntimeError(f"OpenAI API error: {str(e)}")
+            
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error during translation: {str(e)}")
 
 def validate_language(lang):
     if lang not in SUPPORTED_LANGUAGES:
